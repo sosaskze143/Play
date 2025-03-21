@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة ترويض الديناصورات للiPad</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #gameArea {
+            position: relative;
+            width: 2000px;
+            height: 2000px;
+            background-color: #90EE90;
+        }
+        #player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: green;
+            top: 50%;
+            left: 50%;
+        }
+        .dino {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: brown;
+        }
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: black;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left . right"
+                ". down .";
+            gap: 10px;
+        }
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+        }
+        #interact-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 80px;
+            height: 80px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameArea">
+        <div id="player"></div>
+        <!-- ديناصورات -->
+        <div id="dino1" class="dino" style="top: 200px; left: 300px;" data-type="aggressive"></div>
+        <div id="dino2" class="dino" style="top: 500px; left: 800px;" data-type="friendly"></div>
+        <div id="dino3" class="dino" style="top: 1000px; left: 1200px;" data-type="defensive"></div>
+        <div id="info">الطعام: 0 | الديناصورات المروضة: 0</div>
+    </div>
+
+    <!-- عناصر التحكم باللمس -->
+    <div id="controls">
+        <button class="control-btn" id="up">⬆️</button>
+        <button class="control-btn" id="left">⬅️</button>
+        <button class="control-btn" id="down">⬇️</button>
+        <button class="control-btn" id="right">➡️</button>
+    </div>
+    <button id="interact-btn">تفاعل</button>
+
+    <script>
+        const player = document.getElementById("player");
+        const dinos = document.querySelectorAll(".dino");
+        const info = document.getElementById("info");
+
+        let food = 0;
+        let tamedDinos = 0;
+        let isRiding = false;
+        let currentDino = null;
+
+        // تحريك اللاعب باستخدام الأزرار
+        document.getElementById("up").addEventListener("click", () => movePlayer(0, -10));
+        document.getElementById("down").addEventListener("click", () => movePlayer(0, 10));
+        document.getElementById("left").addEventListener("click", () => movePlayer(-10, 0));
+        document.getElementById("right").addEventListener("click", () => movePlayer(10, 0));
+        document.getElementById("interact-btn").addEventListener("click", interactWithDino);
+
+        function movePlayer(dx, dy) {
+            const playerRect = player.getBoundingClientRect();
+            player.style.top = Math.max(0, playerRect.top + dy) + "px";
+            player.style.left = Math.max(0, playerRect.left + dx) + "px";
+        }
+
+        // التفاعل مع الديناصور
+        function interactWithDino() {
+            const playerRect = player.getBoundingClientRect();
+            dinos.forEach(dino => {
+                const dinoRect = dino.getBoundingClientRect();
+                if (isClose(playerRect, dinoRect)) {
+                    handleDinoInteraction(dino);
+                }
+            });
+        }
+
+        // التحقق من القرب من الديناصور
+        function isClose(playerRect, dinoRect) {
+            return Math.abs(playerRect.left - dinoRect.left) < 50 && Math.abs(playerRect.top - dinoRect.top) < 50;
+        }
+
+        // التعامل مع الديناصور
+        function handleDinoInteraction(dino) {
+            const type = dino.dataset.type;
+
+            if (type === "aggressive") {
+                alert("الديناصور العدائي يهاجمك!");
+            } else if (type === "friendly") {
+                if (food >= 5 && !dino.dataset.tamed) {
+                    dino.dataset.tamed = true;
+                    dino.style.backgroundColor = "green";
+                    food -= 5;
+                    tamedDinos++;
+                    info.textContent = `الطعام: ${food} | الديناصورات المروضة: ${tamedDinos}`;
+                    alert("لقد روضت الديناصور! اضغط زر التفاعل لتركبه.");
+                } else if (dino.dataset.tamed && !isRiding) {
+                    isRiding = true;
+                    currentDino = dino;
+                    alert("أنت الآن تركب الديناصور! استخدم الأزرار للتحرك بسرعة.");
+                } else if (isRiding && currentDino === dino) {
+                    isRiding = false;
+                    currentDino = null;
+                    alert("نزلت من الديناصور.");
+                } else {
+                    alert("تحتاج إلى 5 قطع طعام لترويض الديناصور!");
+                }
+            } else if (type === "defensive") {
+                alert("الديناصور الدفاعي لا يهاجمك إلا إذا هاجمته أولاً.");
+            }
+        }
+
+        // زيادة الطعام مع الوقت (محاكاة جمع الموارد)
+        setInterval(() => {
+            food++;
+            info.textContent = `الطعام: ${food} | الديناصورات المروضة: ${tamedDinos}`;
+        }, 3000);
+    </script>
+</body>
+</html>
